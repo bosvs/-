@@ -52,7 +52,7 @@ pair<double, double> findIntersection(double x, double y) {
     // найближча точка до центра кола, яка належить прямій
     double x0 = -a*c/(a*a+b*b), y0 = -b*c/(a*a+b*b);
 
-    // перетин в двох точках
+    // перетин кола і прямої в двох точках
     double d = r * r - c * c / (a * a + b * b);
     double mult = sqrt(d / (a * a + b * b));
     double ax = x0 + b * mult;
@@ -66,7 +66,7 @@ pair<double, double> findIntersection(double x, double y) {
 
 
 double calculate_angle(double x, double y) {
-    return atan2(y, x); // функція для отримання кута  що відповідає точці (x, y) (відносно осі Ox)
+    return atan2(y, x); // функція для отримання кута, що відповідає точці (x, y) (відносно осі Ox)
 }
 
 void angleCorrection(double &startAngle, double &endAngle, int &active){
@@ -76,11 +76,9 @@ void angleCorrection(double &startAngle, double &endAngle, int &active){
         f = 1;
     }
     if(fabs(startAngle - 2*PI) < EPS) startAngle = 0;
+
     if(endAngle < 0) endAngle += 2*PI;
-
-    // maybe a problem here
-
-    if(endAngle - 2*PI > 0) endAngle -= 2*PI;
+    if(endAngle > 2*PI) endAngle -= 2*PI;
 
     // якщо початок дуги лежить перед вісю Ox, а кінець після
     if(f && endAngle < startAngle) ++active;
@@ -104,18 +102,18 @@ bool check(double time){
         auto [px, py] = findIntersection(x, y);
         double angle = calculate_angle(px, py);
 
-        // коли вірус заразить усю планету за цей час
+        // вірус заразить усю планету за цей час
         double length = 2*virusSpeed * currTime;
-        if(length - 2*PI * r >= 0){
+        if(length >= 2*PI * r){
             ++active;
             continue;
         }
 
-        double infectionLength = virusSpeed * currTime / r; // дуга на колі, яку проходить вірус за цей час
+        double infectionAngle = virusSpeed * currTime / r; // дуга на колі, яку проходить вірус за цей час
 
         // кути, між якими поширюється вірус
-        double startAngle = angle - infectionLength;
-        double endAngle = angle + infectionLength;
+        double startAngle = angle - infectionAngle;
+        double endAngle = angle + infectionAngle;
 
         // коригуємо кути, щоб вони знаходились в межах [0, 2π)
         angleCorrection(startAngle, endAngle, active);
@@ -134,16 +132,13 @@ bool check(double time){
     // сортуємо події за кутами
     sort(segments.begin(), segments.end());
 
-//    cout << "time = " << time << " active = " << active << '\n';
-
     // якщо найперший відрізок не починається з кута 0, значить маємо перевірити цю діляку між кутом 0 і першим початком відрізка
     if(active <= l && !segments.empty() && segments[0].angle > 0){
         return 0;
     }
     // не можемо збити віруси, які заразили всю планету
-    // fffffff segments and not rockets come on bitch
+    // fffffff segments and not rockets come on bitch, slandered all my time
     if(segments.empty() && active <= l) return 0;
-//    cout << "here1 \n";
     for(auto& event : segments) {
         if(event.start){
             ++active;
@@ -151,39 +146,29 @@ bool check(double time){
         else{
             --active;
         }
-//        cout << event.angle << "\n";
         if(active <= l){
             return 0;
         }
     }
-//    cout << "here2 \n";
     return 1;
 }
 
 signed main() {
     ios::sync_with_stdio(false);cin.tie(0);
-
+    // Input
     cin >> r >> k >> l;
     rockets.resize(k);
-
-    // Input missile data and calculate times
     for(auto &[cordx, cordy, rocketSpeed, virusSpeed] : rockets){
         cin >> cordx >> cordy >> rocketSpeed >> virusSpeed;
-//        auto [px, py] = findIntersection(cordx, cordy);
-//        cout << cordx << " " << cordy << " " << px << " " << py << '\n';
     }
 
     // binary search the time
     double low = 0, high = 1e7;
-    while(high - low > EPS){
+    while(high - low > EPS)
+    {
         double mid = (low + high) / 2;
-        if(check(mid)){
-            high = mid;
-        }
-        else{
-            low = mid;
-        }
-//      cout << high << " " << low << '\n';
+        if(check(mid)) high = mid;
+        else low = mid;
     }
 
     cout.precision(10);
